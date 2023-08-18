@@ -1,0 +1,589 @@
+<!-- Instructions...  -->
+<!-- press the file to the right named 'ward-boundaries.json' and follow these instructions -->
+<!-- 1. BEWARE when editing the code below -->
+<!-- 2. Use the command F function and find "clients" 
+    The wards are not in numerical order so make sure you are inputting the values with the correct ward
+3. For every ward (except the North York Harvest wards) there will be "clients" = a number
+4. Change the number value to the number of unique values from the Link2Feed Data 
+5. After this number there will be a "visits" variable 
+6. Input the number of duplicate values from the Link2Feed data here 
+7. The "visits" variable is the number that determines the wards colour displayed on the map 
+If you would like to edit a wards description do this on the 'ward-boundaries.json' file alike to when 
+you edit the clients and visits number find the description variable and edit the text in the quotations-->
+<!-- Tips: make sure that "clients" and "visits" have quotations, but the numerical values should NOT have quotations. -->
+<!-- Also make sure there are commas after the numbers. -->
+<!-- It should be good to go now:) -->
+
+<!-- MORE INFO - if you want to change things 
+Command F colourchange to edit the colour of the map 
+Command F legendscale to edit the number of visits for the colours to switch on the map 
+Command F the current text that pops up when you hover over a NYH ward and change it
+Command F any of the sidebar variable names and edit them to change them, however, the variable names are only display once and they should have white text, ONLY change this part. 
+Command F the monthly update disclaimer text and change it
+Any hex code you see you can edit directly, EXCEPT, the ones for the map ward colouring (i've explained how to do those)-->
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Food Bank Visits</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1",'maximum-scale=1',user-scalable=no>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.11.0/mapbox-gl.css" rel="stylesheet">
+    <link href="https://use.typekit.net/zpf3fbu.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.11.0/mapbox-gl.js"></script>
+
+    <link rel="icon" href="data:,">
+
+    <style>
+        body {
+            font-family: "CircularXXWeb", Helvetica, Arial, sans-serif;
+            font-weight: 700;
+            font-style: normal;
+            font-size: 0.87rem;
+            margin: 0;
+            padding: 0;
+            display:grid;
+            grid-template-columns: 25.7% auto;
+            grid-template-rows: auto;
+            overflow: hidden;
+        }
+
+        body, p, h1, .clicked_labels, .info_values {
+            color: #231F20
+        }
+
+        #upper_panel {
+            grid-column: 1 / span 2;
+            grid-row: 1;
+            background-color: #fee08b;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 115px;
+            padding-right: 20px;
+            padding-left: 8px;
+        }
+
+        #upper_panel h1 {
+            font-size: 2rem;
+            margin: 0;
+            padding-left: 10px;
+        }
+
+        #logo_image {
+            width: 100px;
+            cursor: pointer;
+        }
+        
+        #map {
+            grid-column: 2;
+            grid-row: 2;
+            width: 100%;
+            height: 100vh;
+        }
+
+        #side_panel_outer {
+            grid-column: 1;
+            grid-row: 2;
+            background-color: #f1f1f1;
+            /* overflow-y: auto; */
+            padding: 20px;
+            margin-bottom: 10px;
+            grid-row: span 2;
+        }
+
+        .info_rows {
+            border-bottom: 1px solid #000;
+            padding-bottom: 5px;
+            margin-bottom: 1px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .info_rows:last-child {
+            margin-bottom: 0;
+        }
+
+        .info_labels_containers {
+            font-weight: bold;
+        }
+
+        .popup_rows { 
+            padding-bottom: 5px;
+            margin-bottom: 1px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .info_values_containers {
+            text-align: right;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .popup_values {
+            margin: 0;
+            text-align: right;
+            font-weight: bold;
+            margin-top: 2px;
+        }
+
+        .legend-container {
+            position: absolute; 
+            bottom: 30px;
+            right: 20px;
+            border: 1px solid #231F20;
+            padding:10px;
+            background-color: #f1f1f1;
+            z-index: 1;
+        }
+
+        .legend-title { 
+            font-size: 0.9rem;
+            margin: 0 0 10px;
+        }
+
+        .legend-color-scale {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .legend-scale-marker {
+            height: 20px;
+            width: 20px;
+        }
+
+        .legend-scale-labels {
+            display: flex; 
+            justify-content: space-between;
+            font-size: 0.7rem;
+        }
+
+        #legend-info-container {
+            position: absolute;
+            bottom: 125px;
+            right: 20px;
+            border: 1px solid #231F20;
+            padding: 10px;
+            background-color: #f1f1f1;
+            z-index: 1;
+        }
+
+        .legend-info {
+            font-size: 0.9rem;
+            margin: 0;
+            text-align: center;
+        }
+
+        .update-text {
+            position: absolute;
+            bottom: -5px;
+            right: 325px;
+            font-family: "CircularXXWeb", Helvetica, Arial, sans-serif;
+            font-weight: 700;
+            font-size: 0.6rem;
+            color:#231F20;
+            background-color: transparent;
+            border: none;
+            opacity: 0.6;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div id="upper_panel">
+        <h1 style="font-size: 2.2rem;">Daily Bread Food Bank Visits (June 2023)</h1>
+        <a href="https://www.dailybread.ca/" target="_blank">
+            <img id="logo_image" src="https://www.dailybread.ca/wp-content/uploads/2023/05/logo.png" alt="Daily Bread Food Bank Logo">
+        </a>
+    </div>
+    <div id="side_panel_outer">
+        <!-- <p style="font-size: 1.2rem;">Click on an area to find out more about the ward...</p> -->
+        <div class="info_rows">
+            <div class="info_labels_containers row_content">
+                <p class="clicked_labels" style="margin-bottom: 0.2rem;"title="The City of Toronto is divided into 25 Electoral 
+                Wards as of December, 2018
+                (City of Toronto, 2018).">Toronto Ward:</p>
+            </div>
+            <div class="info_values_containers geography_values_containers row_content">
+                <p class="info_values geography_values" id="info_value_geography"></p>
+            </div>
+        </div>
+
+        <div class="info_rows">
+            <div class="info_labels_containers row_content">
+                <p class="clicked_labels" style="margin-bottom: 0.2rem;" title="The total population count for this geographic 
+                area in 2020 (Statistics Canada, 2021).">Population:</p>
+            </div>
+            <div class="info_values_containers population_containers row_content">
+                <p class="info_values population_values_num" id="info_value_population"></p>
+            </div>
+        </div>
+
+        <div class="info_rows"> 
+            <div class="info_labels_containers row_content">
+                <p class="clicked_labels"  style="margin-bottom: 0.2rem;" title="Median after-tax income in 2020 among recipients 
+                aged 15 and older in private households
+                (Statistics Canada, 2021).">Median Income:</p>
+            </div>
+            <div class="info_values_containers medianincome_values_containers row_content">
+                <p class="info_values medianincome_values" id="info_value_medianincome"></p>
+            </div>
+        </div>
+
+        <div class="info_rows"> 
+            <div class="info_labels_containers row_content">
+                <p class="clicked_labels" style="margin-bottom: 0.2rem;" title="Duplicate visits made to Daily Bread Food Banks
+                (Link2Feed).">Food Bank Visits:</p>
+            </div>
+            <div class="info_values_containers visit_values_containers row_content">
+                <p class="info_values visit_values" id="info_value_visit"></p>
+            </div>
+        </div>
+
+        <div class="info_rows"> 
+            <div class="info_labels_containers row_content">
+                <p class="clicked_labels"  style="margin-bottom: 0.2rem;" title="Unique individuals who made visits to Daily 
+                Bread Food Banks (Link2Feed).">Unique Individuals Served at Food Banks:</p>
+            </div>
+            <div class="info_values_containers clients_values_containers row_content">
+                <p class="info_values clients_values" id="info_value_clients"></p>
+            </div>
+        </div>
+
+        <div class="info_rows"> 
+            <div class="info_labels_containers row_content">
+                <p class="clicked_labels" style="margin-bottom: 0.2rem;" title="The rate of unemployment in 2020 among the
+                population aged 15 and over by labour
+                force status (Statistics Canada, 2021).">Unemployment:</p>
+            </div>
+            <div class="info_values_containers labourforce_values_containers row_content">
+                <p class="info_values labourforce_values" id="info_value_labourforce"></p>
+            </div>
+        </div>
+
+        <div class="info_rows"> 
+            <div class="info_labels_containers row_content">
+                <p class="clicked_labels" style="margin-bottom: 0.2rem;" title="Percentage of renters among private households 
+                by tenure in 2020 - 25% sample data 
+                (Statistics Canada, 2021).">Renters:</p>
+            </div>
+            <div class="info_values_containers renters_values_containers row_content">
+                <p class="info_values renters_values" id="info_value_renters"></p>
+            </div>
+        </div>
+
+        <div class="info_rows"> 
+            <div class="info_labels_containers row_content">
+                <p class="clicked_labels" style="margin-bottom: 0.2rem;" title="Percentage of owner and tenant households with 
+                total household income greater than 
+                zero, in non-farm, non-reserve private 
+                dwellings who spend 30% or more of 
+                income on shelter costs - 25% sample 
+                data (Statistics Canada, 2021).">Spends 30% or More of Income on Shelter Costs:</p>
+            </div>
+            <div class="info_values_containers thirtymore_values_containers row_content">
+                <p class="info_values thirtymore_values" id="info_value_thirtymore"></p>
+            </div>
+        </div>
+
+        <div class="info_rows"> 
+            <div class="info_labels_containers row_content">
+                <p class="clicked_labels" style="margin-bottom: 0.2rem;" title="Percentage for population 15 years and over in 
+                private households with a postsecondary 
+                certificate, diploma, or degree in 2020 
+                - 25% sample data (Statistics Canada, 2021).">Postsecondary Certificate, Diploma, or Degree:</p>
+            </div>
+            <div class="info_values_containers higheducation_values_containers row_content">
+                <p class="info_values higheducation_values" id="info_value_higheducation"></p>
+            </div>
+        </div>
+
+        <div class="info_rows"> 
+            <div class="info_labels_containers row_content">
+                <p class="clicked_labels" style="margin-bottom: 0.2rem;" title="Prevalence of low income status for the population 
+                in private households in 2020 based 
+                on the low-income measure, after 
+                tax (LIM-AT) (Statistics Canada, 2021).">Low Income:</p>
+            </div>
+            <div class="info_values_containers LIM_values_containers row_content">
+                <p class="info_values LIM_values" id="info_value_LIM"></p>
+            </div>
+        </div>
+
+        <div class="info_rows"> 
+            <div class="info_labels_containers row_content">
+                <p class="clicked_labels" style="margin-bottom: 0.2rem;" title="Prevalence of low income status for the population 
+                aged 0 to 17 years in private households in 
+                2020 based on the low-income measure, after 
+                tax (LIM-AT) (Statistics Canada, 2021).">Child Poverty:</p>
+            </div>
+            <div class="info_values_containers childpoverty_values_containers row_content">
+                <p class="info_values childpoverty_values" id="info_value_childpoverty"></p>
+            </div>
+        </div>
+
+        <div id="legend-info-container" class="legend-container">
+            <p class="legend-info">Click an area to display more information</p>
+        </div>
+<!-- if you want to change the colours on the map you need to change this section
+command F colourchange to find where you ALSO need to change the hex colours (#hexcolor)  -->
+        <div id="legend" class="legend-container">
+            <p class="legend-title">Number of Food Bank Visits</p>
+            <div class="legend-color-scale">
+                <div class="legend-scale-marker" style="background-color: #ffffe5;"></div>
+                <div class="legend-scale-marker" style="background-color: #f7fcb9;"></div>
+                <div class="legend-scale-marker" style="background-color: #d9f0a3;"></div>
+                <div class="legend-scale-marker" style="background-color: #addd8e;"></div>
+                <div class="legend-scale-marker" style="background-color: #78c679;"></div>
+                <div class="legend-scale-marker" style="background-color: #41ab5d;"></div>
+                <div class="legend-scale-marker" style="background-color: #238443;"></div>
+                <div class="legend-scale-marker" style="background-color: #006837;"></div>
+                <div class="legend-scale-marker" style="background-color: #004529;"></div>
+            </div>
+            <!-- Command F legendscale to find where you should also change your the numbers -->
+            <!-- Change these numbers to correspond to the colours displayed on the map if you've changed them  -->
+            <div class="legend-scale-labels">
+                <span>0</span>
+                <span>5,000</span>
+                <span>10,000</span>
+                <span>15,000</span>
+                <!-- <span>5,000</span>
+                <span>10,000</span>
+                <span>15,000</span>
+                <span>20,000</span>
+                <span>25,000</span>
+                <span>30,000</span> -->
+                <span>20,000+</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1IjoiZGFpbHlicmVhZCIsImEiOiJjbGxlM3R0eDAwMHBvM211bDlvcHo1d2UzIn0.hWpwLkHlI3bG2dK4kNUhFg';
+        const map = new mapboxgl.Map({
+            container: 'map',
+            // (container means where do you want to put the map)
+            style: 'mapbox://styles/dailybread/cllfl1yi601pj01mfd8dkblkw',
+            zoom: 9.7,
+            center: [-79.329610, 43.6783714], //lng, lat (longitutde and latitude)
+            minZoom: 8.5,
+            maxZoom: 11.0
+        });
+
+        var popup = new mapboxgl.Popup({
+            closeButton: false
+        })
+
+        function updateSidePanelInfo(properties) {
+            document.getElementById('info_value_geography').textContent = properties.name;
+            document.getElementById('info_value_population').textContent = properties.population;
+            document.getElementById('info_value_medianincome').textContent = properties.medianincome;
+            document.getElementById('info_value_visit').textContent = properties.visit;
+            document.getElementById('info_value_clients').textContent = properties.clients;
+            document.getElementById('info_value_labourforce').textContent = properties.labourforce;
+            document.getElementById('info_value_renters').textContent = properties.renters;
+            document.getElementById('info_value_thirtymore').textContent = properties.thirtymore;
+            document.getElementById('info_value_higheducation').textContent = properties.higheducation;
+            document.getElementById('info_value_LIM').textContent = properties.LIM;
+            document.getElementById('info_value_childpoverty').textContent = properties.childpoverty;
+
+            document.getElementById('info_value_population').classList.add('popup_values');
+            document.getElementById('info_value_medianincome').classList.add('popup_values');
+            document.getElementById('info_value_visit').classList.add('popup_values');
+            document.getElementById('info_value_clients').classList.add('popup_values');
+            document.getElementById('info_value_labourforce').classList.add('popup_values');
+            document.getElementById('info_value_renters').classList.add('popup_values');
+            document.getElementById('info_value_thirtymore').classList.add('popup_values');
+            document.getElementById('info_value_higheducation').classList.add('popup_values');
+            document.getElementById('info_value_LIM').classList.add('popup_values');
+            document.getElementById('info_value_childpoverty').classList.add('popup_values');
+        }
+
+        map.on('load', () => {
+            // Set the default atmosphere style
+            map.dragPan.disable();
+            map.setFog({});
+            map.addSource('ward-boundaries', {
+                type: 'geojson',
+                data: 'data/ward-boundaries.json',
+                promoteId: 'name'
+            })
+            
+            // If you want to change the colours of the map you need to change here too 
+            // Command F colourchange to find where to change the colours 
+            //If you want to change the scale of how the colours change here is where you do that
+            //However to change the legend you need to change another section command F legendscale to also change the legends numbers  
+            map.addLayer(
+                {
+                    'id': 'ward-fill',
+                    'source': 'ward-boundaries',
+                    'layout': {},
+                    'type': 'fill',
+                    'paint': {
+                        'fill-color': [
+                            'case',
+                            ['has', 'visits'],
+                            [
+                                'interpolate',
+                                ['linear'],
+                                ['get', 'visits'],
+                                0,
+                                '#ffffe5', //you need to change all these hex colours (#hexcolor)
+                                2500, //These numbers are where the colours change depending on the wards number of visits
+                                '#f7fcb9',
+                                5000,
+                                '#d9f0a3',
+                                7500,
+                                '#addd8e',
+                                10000,
+                                '#78c679',
+                                12500,
+                                '#41ab5d',
+                                15000,
+                                '#238443',
+                                17500,
+                                '#006837',
+                                20000,
+                                '#004529',
+                            ],
+                            '#ffffff'
+                        ],
+                        'fill-opacity': [
+                            'case',
+                            ['boolean', ['feature-state', 'hover'], false],
+                            1, //if true fill opacity should be 1 if false fill opacity should be 0.5
+                            0.80
+                        ]
+                    }
+                });
+
+                map.addLayer({
+                    id: 'ward-numbers',
+                    type: 'symbol',
+                    source: 'ward-boundaries',
+                    layout: {
+                        'text-field': ['get', 'number'],
+                        'text-size': 12,
+                        'text-anchor': 'center',
+                        'text-allow-overlap': true,
+                    },
+                    paint: {
+                        'text-color': 'black',
+                    },
+                });
+
+                map.on('click', 'ward-fill', (e) => {
+                    if (e.features.length > 0) {
+                        const properties = e.features[0].properties;
+                        updateSidePanelInfo(properties);
+                    }
+                })
+
+                let hoveredStateId = null
+
+                map.on('mousemove', 'ward-fill', (e) => {
+                    if (e.features.length > 0) {
+                        const feature = e.features[0];
+                                        // If you want to edit this text you can but DO NOT remove the </p> things 
+                        if (!feature.properties.visits) {
+                            popup.setLngLat(e.lngLat)
+                                .setHTML(`<p>Area covered by North York Harvest. Please contact NYH for more details.</P>`)
+                                .addTo(map);
+                        } else {
+                            if (hoveredStateId !== null) {
+                                map.setFeatureState(
+                                    { source: 'ward-boundaries', id: hoveredStateId },
+                                    { hover: false }
+                                );
+                            }
+                            hoveredStateId = e.features[0].id;
+                            map.setFeatureState(
+                                { source: 'ward-boundaries', id: hoveredStateId },
+                                { hover: true }
+                            );
+
+                            popup.remove();
+
+                        }
+                    } else if (hoveredStateId !== null) {
+                        map.setFeatureState(
+                            {source: 'ward-boundaries', id: hoveredStateId },
+                            {hover: false }
+                        );
+                        hoveredStateId = null;
+                        // popup.remove();
+                    }
+                });
+
+                map.on('mouseleave', 'ward-fill', function() {
+                    map.getCanvas().style.cursor = '';
+                    popup.remove();
+                });
+
+                map.addLayer({
+                    id: 'ward-boundaries-line',
+                    type: 'line',
+                    layout: {},
+                    source: 'ward-boundaries', //needs to be the same as the addSource
+                    paint: {
+                        'line-color': '#231F20',
+                        'line-width': 1.5,
+                        'line-opacity': 0.6
+                    }
+                });
+
+                const labels = document.querySelectorAll('.clicked_labels');
+
+                labels.forEach(label => {
+                    label.addEventListener('mouseover', (event) => {
+                        const description = event.target.getAttribute('title');
+                        if (description) {
+                            const tooltip = document.createElement('div');
+                            tooltip.className = 'tooltip';
+                            tooltip.textContent = description; 
+                            tooltip.style.position = 'absolute';
+                            tooltip.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+                            tooltip.style.color = 'white';
+                            tooltip.style.padding = '5px'; 
+                            tooltip.style.borderRadius = '3px';
+                            tooltip.style.pointerEvents = 'none';
+
+                            if (!label.classList.contains('clients_values_containers')) {
+                                const rect = event.target.getBoundingClientRect();
+                                const x = rect.left + window.scrollX;
+                                const y = rect.bottom + window.scrollY;
+
+                                tooltip.style.left = x + 'px';
+                                tooltip.style.top = y +'px';
+
+                                document.body/appendChild(tooltip);
+
+                                label.addEventListener('mouseout', () => {
+                                    document.body.removeChild(tooltip);
+                                })
+                            }
+                        }
+                    })
+                })
+        });
+
+    </script>
+  <!-- If you want to change this text you can do so, however, DO NOT remove the </p> things-->
+  <div class="update-text">
+    <p>This map will be updated by the 20th of every month for the previous month.</p>
+</div>
+
+</body>
+
+</html>
+
